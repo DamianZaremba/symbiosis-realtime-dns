@@ -1,0 +1,56 @@
+#!/bin/sh
+# Start/stop the dns-watcher daemon.
+#
+### BEGIN INIT INFO
+# Provides:          dns-watcher
+# Required-Start:    $remote_fs $syslog $time
+# Required-Stop:     $remote_fs $syslog $time
+# Should-Start:      $named slapd autofs ypbind nscd nslcd
+# Should-Stop:       $named slapd autofs ypbind nscd nslcd
+# Default-Start:     2 3 4 5
+# Default-Stop:
+# Description: Real time dns updates
+### END INIT INFO
+
+PIDFILE="/var/run/dns-watcher.pid"
+test -f /usr/local/bin/dns-watcher || exit 0
+. /lib/lsb/init-functions
+
+case "$1" in
+start)	log_daemon_msg "Starting real time dns updater" "dns-watcher"
+        start-stop-daemon --start --quiet --pidfile $PIDFILE --name dns-watcher --startas /usr/local/bin/dns-watcher -- $LSBNAMES $EXTRA_OPTS
+        log_end_msg $?
+	;;
+stop)	log_daemon_msg "Stopping real time dns updater" "dns-watcher"
+        start-stop-daemon --stop --quiet --pidfile $PIDFILE --name dns-watcher
+        log_end_msg $?
+        ;;
+restart) log_daemon_msg "Restarting real time dns updater" "dns-watcher" 
+        start-stop-daemon --stop --retry 5 --quiet --pidfile $PIDFILE --name dns-watcher
+        start-stop-daemon --start --quiet --pidfile $PIDFILE --name dns-watcher --startas /usr/local/bin/dns-watcher -- $LSBNAMES $EXTRA_OPTS
+        log_end_msg $?
+        ;;
+reload|force-reload) log_daemon_msg "Reloading configuration files for real time dns updater" "dns-watcher"
+	# dns-watcher reloads automatically
+        log_end_msg 0
+        ;;
+status)
+       log_action_begin_msg "Checking real time dns updater"
+       if pidofproc -p "$PIDFILE" >/dev/null; then
+            log_action_end_msg 0 "running"
+            exit 0
+       else
+           if [ -e "$PIDFILE" ]; then
+                log_action_end_msg 1 "failed to start"
+                exit 1
+           else
+                log_action_end_msg 0 "not running"
+                exit 3
+           fi
+       fi
+         ;;
+*)	log_action_msg "Usage: /etc/init.d/dns-watcher {start|stop|status|restart|reload|force-reload}"
+        exit 2
+        ;;
+esac
+exit 0
